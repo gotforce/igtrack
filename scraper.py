@@ -1,11 +1,8 @@
-# scraper.py
+# scraper.py (Final Version: Cloudscraper)
 import os
-import sqlite3 # Keep for local testing if needed, but not used in production
 from datetime import datetime
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+import cloudscraper # Use cloudscraper instead of requests
+from bs4 import BeautifulSoup
 from sqlalchemy import create_engine, text, inspect
 
 # --- Configuration ---
@@ -38,36 +35,31 @@ def setup_database():
             print("Table 'following_history' already exists.")
 
 def scrape_and_save_count():
-    """Scrapes Social Blade using a resource-optimized Selenium browser."""
-    print("Starting scraper (Social Blade Selenium method - Lean Mode)...")
+    """Scrapes Social Blade using cloudscraper to bypass bot detection."""
+    print("Starting scraper (Cloudscraper method)...")
     
-    # --- UPDATED OPTIONS ---
-    # These options are optimized for running in a constrained cloud environment
-    options = webdriver.ChromeOptions()
-    options.add_argument("--headless")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--disable-extensions")
-    options.add_argument("--single-process") # Crucial for reducing memory usage
-    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+    # Create a scraper instance that can bypass Cloudflare
+    scraper = cloudscraper.create_scraper()
     
-    # Disable image loading to save memory
-    prefs = {"profile.managed_default_content_settings.images": 2}
-    options.add_experimental_option("prefs", prefs)
-    # --- END OF UPDATED OPTIONS ---
-
-    driver = webdriver.Chrome(options=options)
-    wait = WebDriverWait(driver, 15)
-
     try:
-        print(f"Navigating to {TARGET_ACCOUNT}'s profile on Social Blade...")
-        driver.get(SOCIALBLADE_URL)
-        
-        print("Finding following count...")
-        following_value_element = wait.until(EC.presence_of_element_located(
-            (By.XPATH, "//span[text()='FOLLOWING']/following-sibling::span")
-        ))
+        # Use the scraper instance just like you would use 'requests'
+        response = scraper.get(SOCIALBLADE_URL)
+        if response.status_code != 200:
+            print(f"Error: Failed to fetch page. Status code: {response.status_code}")
+            return
+
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        # Find the 'FOLLOWING' label, then find the next sibling span which holds the number
+        following_label = soup.find('span', string='FOLLOWING')
+        if not following_label:
+            print("Error: Could not find the 'FOLLOWING' label.")
+            return
+
+        following_value_element = following_label.find_next_sibling('span')
+        if not following_value_element:
+            print("Error: Could not find the following count value element.")
+            return
         
         following_count_str = following_value_element.text.strip().replace(',', '')
         following_count = int(following_count_str)
@@ -84,7 +76,6 @@ def scrape_and_save_count():
     except Exception as e:
         print(f"An error occurred: {e}")
     finally:
-        driver.quit()
         print("Scraper finished.")
 
 if __name__ == '__main__':
