@@ -38,13 +38,25 @@ def setup_database():
             print("Table 'following_history' already exists.")
 
 def scrape_and_save_count():
-    print("Starting scraper (Social Blade Selenium method)...")
+    """Scrapes Social Blade using a resource-optimized Selenium browser."""
+    print("Starting scraper (Social Blade Selenium method - Lean Mode)...")
+    
+    # --- UPDATED OPTIONS ---
+    # These options are optimized for running in a constrained cloud environment
     options = webdriver.ChromeOptions()
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--disable-extensions")
+    options.add_argument("--single-process") # Crucial for reducing memory usage
     options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
     
+    # Disable image loading to save memory
+    prefs = {"profile.managed_default_content_settings.images": 2}
+    options.add_experimental_option("prefs", prefs)
+    # --- END OF UPDATED OPTIONS ---
+
     driver = webdriver.Chrome(options=options)
     wait = WebDriverWait(driver, 15)
 
