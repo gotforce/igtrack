@@ -1,0 +1,6 @@
+# requirements.txt
+Flask
+gunicorn
+selenium
+SQLAlchemy
+psycopg2-binary
