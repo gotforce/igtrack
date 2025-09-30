@@ -1,7 +1,7 @@
-# scraper.py (Final Version: Cloudscraper)
+# scraper.py (Cloudscraper with Debugging)
 import os
 from datetime import datetime
-import cloudscraper # Use cloudscraper instead of requests
+import cloudscraper
 from bs4 import BeautifulSoup
 from sqlalchemy import create_engine, text, inspect
 
@@ -35,14 +35,12 @@ def setup_database():
             print("Table 'following_history' already exists.")
 
 def scrape_and_save_count():
-    """Scrapes Social Blade using cloudscraper to bypass bot detection."""
+    """Scrapes Social Blade using cloudscraper and includes debugging output."""
     print("Starting scraper (Cloudscraper method)...")
     
-    # Create a scraper instance that can bypass Cloudflare
     scraper = cloudscraper.create_scraper()
     
     try:
-        # Use the scraper instance just like you would use 'requests'
         response = scraper.get(SOCIALBLADE_URL)
         if response.status_code != 200:
             print(f"Error: Failed to fetch page. Status code: {response.status_code}")
@@ -50,9 +48,14 @@ def scrape_and_save_count():
 
         soup = BeautifulSoup(response.text, 'html.parser')
 
-        # Find the 'FOLLOWING' label, then find the next sibling span which holds the number
         following_label = soup.find('span', string='FOLLOWING')
         if not following_label:
+            # --- DEBUGGING STEP ---
+            # If the label isn't found, save the HTML we received to a file.
+            with open('debug_page.html', 'w', encoding='utf-8') as f:
+                f.write(soup.prettify())
+            print("Saved the received HTML to debug_page.html for inspection.")
+            # --- END DEBUGGING STEP ---
             print("Error: Could not find the 'FOLLOWING' label.")
             return
 
